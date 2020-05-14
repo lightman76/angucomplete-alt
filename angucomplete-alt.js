@@ -743,6 +743,7 @@
         }
         callOrAssign(result);
         clearResults();
+        inputField.focus();
       };
 
       scope.inputChangeHandler = function(str) {

@@ -18,6 +18,13 @@ describe('angucomplete-alt', function() {
     $timeout = _$timeout_;
   }));
 
+  function stripString(str) {
+    if(str) {
+      str = str.replace(/^\s+/g,'').replace(/\s+$/g,'');
+    }
+    return str;
+  }
+
   describe('Render', function() {
 
     it('should render input element with given id plus _value', function() {
@@ -735,16 +742,17 @@ describe('angucomplete-alt', function() {
       var inputField = element.find('#ex1_value');
       var e = $.Event('keyup');
       e.which = 97; // letter: a
-
+      var inputScope = angular.element(inputField[0]).scope();
+      inputScope.onFocusHandler({}); //actual focus events don't seem fire in the tests, so simulate them
       inputField.val('a');
       inputField.trigger('input');
       inputField.trigger(e);
       $timeout.flush();
       expect(element.find('#ex1_dropdown').hasClass('ng-hide')).toBeFalsy();
-
       inputField.blur();
+      $timeout.flush(11);
       expect(element.find('#ex1_dropdown').hasClass('ng-hide')).toBeFalsy();
-      $timeout.flush();
+      $timeout.flush(261);
       expect(element.find('#ex1_dropdown').hasClass('ng-hide')).toBeTruthy();
     });
 
@@ -763,6 +771,9 @@ describe('angucomplete-alt', function() {
       var e = $.Event('keyup');
       e.which = 97; // letter: a
 
+      var inputScope = angular.element(inputField[0]).scope();
+      inputScope.onFocusHandler({}); //actual focus events don't seem fire in the tests, so simulate them
+
       inputField.val('a');
       inputField.trigger('input');
       inputField.trigger(e);
@@ -771,8 +782,8 @@ describe('angucomplete-alt', function() {
 
       inputField.blur();
       expect(element.find('#ex1_dropdown').hasClass('ng-hide')).toBeFalsy();
+      $timeout.flush(261);
       inputField.focus();
-      $timeout.flush();
       expect(element.find('#ex1_dropdown').hasClass('ng-hide')).toBeTruthy();
     });
   });
@@ -1482,12 +1493,12 @@ describe('angucomplete-alt', function() {
       eKeydown.which = KEY_DW;
       inputField.trigger(eKeydown);
       inputField.trigger(eKeydown);
-      expect(inputField.val()).toEqual('Elvis Presly');
+      expect(stripString(element.find('.angucomplete-selected-row')[0].innerText)).toEqual('Elvis Presly');
 
       // Up arrow 1 time
       eKeydown.which = KEY_UP;
       inputField.trigger(eKeydown);
-      expect(inputField.val()).toEqual('Emma Watson');
+      expect(stripString(element.find('.angucomplete-selected-row')[0].innerText)).toEqual('Emma Watson');
     });
 
     it('should update input field when up/down arrow key is pressed with match class on', function() {
@@ -1515,12 +1526,12 @@ describe('angucomplete-alt', function() {
       eKeydown.which = KEY_DW;
       inputField.trigger(eKeydown);
       inputField.trigger(eKeydown);
-      expect(inputField.val()).toEqual('Elvis Presly');
+      expect(stripString(element.find('.angucomplete-selected-row')[0].innerText)).toEqual('Elvis Presly');
 
       // Up arrow 1 time
       eKeydown.which = KEY_UP;
       inputField.trigger(eKeydown);
-      expect(inputField.val()).toEqual('Emma Watson');
+      expect(stripString(element.find('.angucomplete-selected-row')[0].innerText)).toEqual('Emma Watson');
     });
 
     it('should change back to original when it goes up to input field', function() {
@@ -1535,6 +1546,7 @@ describe('angucomplete-alt', function() {
       $scope.$digest();
 
       var inputField = element.find('#ex1_value');
+      inputField.focus();
       var eKeydown = $.Event('keydown');
       var eKeyup = $.Event('keyup');
 
@@ -1546,14 +1558,16 @@ describe('angucomplete-alt', function() {
 
       // Down arrow 2 times
       eKeydown.which = KEY_DW;
-      inputField.trigger(eKeydown);
-      inputField.trigger(eKeydown);
-      expect(inputField.val()).toEqual('Elvis Presly');
+      element.trigger(eKeydown);
+      element.trigger(eKeydown);
+      expect(stripString(element.find('.angucomplete-selected-row')[0].innerText)).toEqual('Elvis Presly');
+
 
       // Up arrow 2 time and go back to original input
       eKeydown.which = KEY_UP;
-      inputField.trigger(eKeydown);
-      inputField.trigger(eKeydown);
+      element.trigger(eKeydown);
+      element.trigger(eKeydown);
+      expect(element.find('.angucomplete-selected-row').length).toEqual(0);  //no list item selected
       expect(inputField.val()).toEqual('e');
     });
 
@@ -1825,8 +1839,10 @@ describe('angucomplete-alt', function() {
       $scope.$digest();
 
       var inputField = element.find('#ex1_value');
-      var e = $.Event('keyup');
+      var inputScope = angular.element(inputField[0]).scope();
+      inputScope.onFocusHandler({}); //actual focus events don't seem fire in the tests, so simulate them
 
+      var e = $.Event('keyup');
       e.which = 'l'.charCodeAt(0);
       inputField.val('l');
       inputField.trigger('input');
@@ -1837,7 +1853,7 @@ describe('angucomplete-alt', function() {
       expect(element.find('.angucomplete-row').length).toEqual(2);
 
       inputField.blur();
-      $timeout.flush();
+      $timeout.flush(261);
       expect(element.find('#ex1_dropdown').hasClass('ng-hide')).toBeTruthy();
 
       inputField.focus();

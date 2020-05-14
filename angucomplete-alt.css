@@ -34,9 +34,6 @@
     margin-bottom: 4px;
     clear: both;
 }
-.angucomplete-row:focus {
-  outline: 4px solid mediumpurple;
-}
 
 .angucomplete-selected-row {
     background-color: lightblue;

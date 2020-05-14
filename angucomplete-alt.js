@@ -45,12 +45,15 @@
 
     // Set the default template for this directive
     $templateCache.put(TEMPLATE_URL,
-        '<div class="angucomplete-holder" ng-class="{\'angucomplete-dropdown-visible\': showDropdown}" role="search">' +
-        '  <input id="{{id}}_value" name="{{inputName}}" tabindex="{{fieldTabindex}}" ng-class="{\'angucomplete-input-not-empty\': notEmpty}" ng-model="searchStr" ng-disabled="disableInput" type="{{inputType}}" placeholder="{{placeholder}}" maxlength="{{maxlength}}" ng-focus="onFocusHandler()" class="{{inputClass}}" ng-focus="resetHideResults()" ng-blur="hideResults($event)" autocapitalize="off" autocorrect="off" autocomplete="off" ng-change="inputChangeHandler(searchStr)" role="combobox" aria-autocomplete="list" aria-haspopup="true" aria-expanded="{{showDropdown}}" aria-owns="{{id}}_dropdown" aria-activedescendant/>' +
+        '<div class="angucomplete-holder" ng-class="{\'angucomplete-dropdown-visible\': showDropdown}">' +
+        '  <input id="{{id}}_value" name="{{inputName}}" tabindex="{{fieldTabindex}}" ng-class="{\'angucomplete-input-not-empty\': notEmpty}" ng-model="searchStr" ng-disabled="disableInput" type="{{inputType}}" placeholder="{{placeholder}}" maxlength="{{maxlength}}" ng-focus="onFocusHandler();" class="{{inputClass}}" ng-blur="onBlurHandler($event)" autocapitalize="off" autocorrect="off" autocomplete="off" ng-change="inputChangeHandler(searchStr)" role="combobox" aria-autocomplete="list" aria-haspopup="true" aria-expanded="{{showDropdown}}" aria-owns="{{id}}_dropdown" aria-activedescendant/>' +
         '  <div id="{{id}}_dropdown" class="angucomplete-dropdown" ng-show="showDropdown" role="listbox">' +
         '    <div class="angucomplete-searching" ng-show="searching" ng-bind="textSearching"></div>' +
-        '    <div class="angucomplete-searching" ng-show="!searching && (!results || results.length == 0)" ng-bind="textNoResults"></div>' +
-        '    <div class="angucomplete-row" ng-repeat="result in results" ng-click="selectResult(result)" ng-mouseenter="hoverRow($index)" ng-class="{\'angucomplete-selected-row\': $index == currentIndex}" role="option">' +
+        '    <div class="angucomplete-searching" role="status">' +
+        '      <div ng-if="!searching && (!results || results.length == 0)" ng-bind="textNoResults"></div>' +
+        '      <div ng-if="!searching && results && results.length > 0" class="angucomplete-sr-only">{{results.length}} matches</div>' +
+        '    </div>' +
+        '    <div class="angucomplete-row" ng-repeat="result in results" ng-click="selectResult(result)" ng-mouseenter="hoverRow($index)" ng-class="{\'angucomplete-selected-row\': $index == currentIndex}" role="option" tabindex="0" ng-focus="onSuggestionFocus()" ng-blur="onSuggestionBlur($event)">' +
         '      <div ng-if="imageField" class="angucomplete-image-holder">' +
         '        <img ng-if="result.image && result.image != \'\'" ng-src="{{result.image}}" class="angucomplete-image"/>' +
         '        <div ng-if="!result.image && result.image != \'\'" class="angucomplete-image-default"></div>' +
@@ -69,6 +72,7 @@
       var minlength = MIN_LENGTH;
       var searchTimer = null;
       var hideTimer;
+      var focusCount = 0;
       var requiredClassName = REQUIRED_CLASS;
       var responseFormatter;
       var validState = null;
@@ -366,8 +370,9 @@
           if ((scope.currentIndex + 1) < scope.results.length && scope.showDropdown) {
             scope.$apply(function() {
               scope.currentIndex ++;
-              updateInputField();
+              //updateInputField();
             });
+            angular.element(elem.find('.angucomplete-row')[scope.currentIndex]).focus();
 
             if (isScrollOn) {
               row = dropdownRow();
@@ -381,8 +386,9 @@
           if (scope.currentIndex >= 1) {
             scope.$apply(function() {
               scope.currentIndex --;
-              updateInputField();
+              //updateInputField();
             });
+            angular.element(elem.find('.angucomplete-row')[scope.currentIndex]).focus();
 
             if (isScrollOn) {
               rowTop = dropdownRowTop();
@@ -392,6 +398,7 @@
             }
           }
           else if (scope.currentIndex === 0) {
+            inputField.focus();
             scope.$apply(function() {
               scope.currentIndex = -1;
               inputField.val(scope.searchStr);
@@ -638,15 +645,47 @@
       }
 
       scope.onFocusHandler = function() {
-        if (scope.focusIn) {
-          scope.focusIn();
+        if(focusCount === 0) {
+          if (scope.focusIn) {
+            scope.focusIn();
+          }
+          if (minlength === 0 && (!scope.searchStr || scope.searchStr.length === 0)) {
+            scope.currentIndex = scope.focusFirst ? 0 : scope.currentIndex;
+            scope.showDropdown = true;
+            showAll();
+          }
         }
-        if (minlength === 0 && (!scope.searchStr || scope.searchStr.length === 0)) {
-          scope.currentIndex = scope.focusFirst ? 0 : scope.currentIndex;
-          scope.showDropdown = true;
-          showAll();
-        }
+        focusCount++;
       };
+
+      scope.onBlurHandler = function() {
+        //delay the focusCount decrement so that if navigating to another element in the autocomplete
+        //the focus event has time to fire and increment the counter
+        // so we don't trigger the close when it shouldn't
+        $timeout(function(){
+          focusCount--;
+          if(focusCount === 0) {
+            scope.hideResults();
+          }
+        },10);
+      };
+
+      scope.onSuggestionFocus = function() {
+        focusCount++;
+      };
+
+      scope.onSuggestionBlur = function() {
+        //delay the focusCount decrement so that if navigating to another element in the autocomplete
+        //the focus event has time to fire and increment the counter
+        // so we don't trigger the close when it shouldn't
+        $timeout(function(){
+          focusCount--;
+          if(focusCount === 0) {
+            scope.hideResults();
+          }
+        },10);
+      };
+
 
       scope.hideResults = function() {
         if (mousedownOn &&
@@ -656,6 +695,7 @@
         }
         else {
           hideTimer = $timeout(function() {
+            focusCount = 0;
             clearResults();
             scope.$apply(function() {
               if (scope.searchStr && scope.searchStr.length > 0) {
@@ -680,6 +720,7 @@
       scope.resetHideResults = function() {
         if (hideTimer) {
           $timeout.cancel(hideTimer);
+          hideTimer = null;
         }
       };
 
@@ -767,8 +808,9 @@
       scope.maxlength = attrs.maxlength ? attrs.maxlength : MAX_LENGTH;
 
       // register events
-      inputField.on('keydown', keydownHandler);
-      inputField.on('keyup compositionend', keyupHandler);
+      elem.on('keydown', keydownHandler);
+      elem.on('keyup', keyupHandler);
+      inputField.on('compositionend', keyupHandler);
 
       // set response formatter
       responseFormatter = callFunctionOrIdentity('remoteUrlResponseFormatter');

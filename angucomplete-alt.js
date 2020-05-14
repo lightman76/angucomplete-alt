@@ -53,7 +53,7 @@
         '      <div ng-if="!searching && (!results || results.length == 0)" ng-bind="textNoResults"></div>' +
         '      <div ng-if="!searching && results && results.length > 0" class="angucomplete-sr-only">{{results.length}} matches</div>' +
         '    </div>' +
-        '    <div class="angucomplete-row" ng-repeat="result in results" ng-click="selectResult(result)" ng-mouseenter="hoverRow($index)" ng-class="{\'angucomplete-selected-row\': $index == currentIndex}" role="option" tabindex="0" ng-focus="onSuggestionFocus()" ng-blur="onSuggestionBlur($event)">' +
+        '    <div class="angucomplete-row" ng-repeat="result in results" ng-click="selectResult(result)" ng-mouseenter="hoverRow($index)" ng-class="{\'angucomplete-selected-row\': $index == currentIndex}" role="option" tabindex="-1" ng-focus="onSuggestionFocus()" ng-blur="onSuggestionBlur($event)">' +
         '      <div ng-if="imageField" class="angucomplete-image-holder">' +
         '        <img ng-if="result.image && result.image != \'\'" ng-src="{{result.image}}" class="angucomplete-image"/>' +
         '        <div ng-if="!result.image && result.image != \'\'" class="angucomplete-image-default"></div>' +
@@ -695,7 +695,6 @@
         }
         else {
           hideTimer = $timeout(function() {
-            focusCount = 0;
             clearResults();
             scope.$apply(function() {
               if (scope.searchStr && scope.searchStr.length > 0) {
